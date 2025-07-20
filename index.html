@@ -2,44 +2,63 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Zoomable SVG Map Viewer</title>
+  <title>Zoomable SVG Viewer (Touch Friendly)</title>
   <style>
     html, body {
       margin: 0;
+      padding: 0;
       height: 100%;
       background: #111;
       overflow: hidden;
     }
-    #svg-container {
+    #svg-wrapper {
       width: 100%;
       height: 100%;
+      touch-action: none; /* Important for iPad! */
     }
     svg {
-      display: block;
       width: 100%;
       height: 100%;
-      touch-action: none;
+      display: block;
     }
   </style>
 </head>
 <body>
-  <div id="svg-container"></div>
+  <div id="svg-wrapper"></div>
 
+  <!-- Panzoom Library -->
   <script src="https://unpkg.com/@panzoom/panzoom@9.4.0/dist/panzoom.min.js"></script>
   <script>
-    fetch('worldMap.svg')  // Change this to match your SVG file name
+    // Load external SVG file
+    fetch('worldMap.svg')
       .then(response => response.text())
       .then(svgText => {
-        const container = document.getElementById('svg-container');
-        container.innerHTML = svgText;
-        const svg = container.querySelector('svg');
+        const wrapper = document.getElementById('svg-wrapper');
+        wrapper.innerHTML = svgText;
+
+        const svg = wrapper.querySelector('svg');
+
         if (svg) {
-          const panzoom = Panzoom(svg, {
+          // Wrap SVG in a group (<g>) to apply zoom/pan to contents
+          const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          while (svg.firstChild) {
+            g.appendChild(svg.firstChild);
+          }
+          svg.appendChild(g);
+
+          // Create Panzoom instance on the <g> group inside the SVG
+          const panzoom = Panzoom(g, {
             maxScale: 50,
-            minScale: 0.1,
+            minScale: 0.2,
             contain: 'outside'
           });
+
+          // Hook into touch & scroll
           svg.parentElement.addEventListener('wheel', panzoom.zoomWithWheel);
+          svg.parentElement.addEventListener('touchstart', e => e.preventDefault(), { passive: false }); // required for iOS
+
+          // Optional: Start zoomed out
+          panzoom.zoom(0.5);
         }
       });
   </script>
